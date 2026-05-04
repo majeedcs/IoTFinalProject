@@ -1,0 +1,157 @@
+{% extends "base.html" %} 
+{% block content %}
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<div id="system-notification" class="alert alert-danger d-none mb-4 fw-bold shadow-sm" role="alert">
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Smart Store IoT Dashboard</h3>
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0 me-3">Cooling Fan Status:</h5>
+                    <span id="fanBadge" class="badge bg-secondary fs-5">OFF</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row text-center">
+    <!-- Refrigerator 1 (ESP32) -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>Fridge 1 (Sensor)</span>
+                <div class="input-group input-group-sm w-50">
+                    <input type="number" id="thresh_Frig1" class="form-control" value="25.0">
+                    <button class="btn btn-primary" onclick="updateThreshold('Frig1')">Set</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="gauge_frig1_temp" class="d-inline-block"></div>
+                <div id="gauge_frig1_hum" class="d-inline-block"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refrigerator 2 (Manual/Simulated) -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>Fridge 2 (Manual)</span>
+                <div class="input-group input-group-sm w-50">
+                    <input type="number" id="thresh_Frig2" class="form-control" value="25.0">
+                    <button class="btn btn-primary" onclick="updateThreshold('Frig2')">Set</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="gauge_frig2_temp" class="d-inline-block"></div>
+                <div id="gauge_frig2_hum" class="d-inline-block"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refrigerator 3 (Bluetooth) -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm border-info">
+            <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between align-items-center">
+                <span>Fridge 3 (Bluetooth)</span>
+                <div class="input-group input-group-sm w-50">
+                    <input type="number" id="thresh_Frig_BT" class="form-control" value="25.0">
+                    <button class="btn btn-primary" onclick="updateThreshold('Frig_BT')">Set</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="gauge_bt_temp" class="d-inline-block"></div>
+                <div id="gauge_bt_hum" class="d-inline-block"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    google.charts.load('current', {'packages':['gauge']});
+    google.charts.setOnLoadCallback(initGauges);
+
+    // Variable declarations for all 3 fridges
+    let chartF1T, chartF1H, chartF2T, chartF2H, chartBTT, chartBTH;
+    let dataF1T, dataF1H, dataF2T, dataF2H, dataBTT, dataBTH;
+    let optionsTemp, optionsHum;
+
+    function initGauges() {
+        // Initialize DataTables
+        dataF1T = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Temp °C', 0] ]);
+        dataF1H = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Hum %', 0] ]);
+        dataF2T = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Temp °C', 0] ]);
+        dataF2H = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Hum %', 0] ]);
+        dataBTT = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Temp °C', 0] ]);
+        dataBTH = google.visualization.arrayToDataTable([ ['Label', 'Value'], ['Hum %', 0] ]);
+
+        optionsTemp = { width: 160, height: 160, redFrom: 30, redTo: 50, yellowFrom: 20, yellowTo: 30, minorTicks: 5, max: 50 };
+        optionsHum = { width: 160, height: 160, redFrom: 80, redTo: 100, yellowFrom: 60, yellowTo: 80, minorTicks: 5, max: 100 };
+
+        // Create Gauge objects
+        chartF1T = new google.visualization.Gauge(document.getElementById('gauge_frig1_temp'));
+        chartF1H = new google.visualization.Gauge(document.getElementById('gauge_frig1_hum'));
+        chartF2T = new google.visualization.Gauge(document.getElementById('gauge_frig2_temp'));
+        chartF2H = new google.visualization.Gauge(document.getElementById('gauge_frig2_hum'));
+        chartBTT = new google.visualization.Gauge(document.getElementById('gauge_bt_temp'));
+        chartBTH = new google.visualization.Gauge(document.getElementById('gauge_bt_hum'));
+
+        // Initial Draw
+        updateGaugeDisplays();
+
+        setInterval(fetchSensorData, 2000);
+    }
+
+    function updateGaugeDisplays() {
+        chartF1T.draw(dataF1T, optionsTemp);
+        chartF1H.draw(dataF1H, optionsHum);
+        chartF2T.draw(dataF2T, optionsTemp);
+        chartF2H.draw(dataF2H, optionsHum);
+        chartBTT.draw(dataBTT, optionsTemp);
+        chartBTH.draw(dataBTH, optionsHum);
+    }
+
+    function fetchSensorData() {
+        fetch('/api/sensors')
+            .then(response => response.json())
+            .then(data => {
+                // Map data from API to DataTables
+                dataF1T.setValue(0, 1, data.Frig1.temperature);
+                dataF1H.setValue(0, 1, data.Frig1.humidity);
+                dataF2T.setValue(0, 1, data.Frig2.temperature);
+                dataF2H.setValue(0, 1, data.Frig2.humidity);
+                dataBTT.setValue(0, 1, data.Frig_BT.temperature);
+                dataBTH.setValue(0, 1, data.Frig_BT.humidity);
+
+                updateGaugeDisplays();
+
+                // Fan and Notification logic
+                const fanBadge = document.getElementById('fanBadge');
+                fanBadge.className = data.fan_status === "ON" ? "badge bg-success fs-5" : "badge bg-secondary fs-5";
+                fanBadge.innerText = data.fan_status;
+
+                const notifBanner = document.getElementById('system-notification');
+                if (data.notification) {
+                    notifBanner.innerText = data.notification;
+                    notifBanner.classList.remove('d-none');
+                } else {
+                    notifBanner.classList.add('d-none');
+                }
+            });
+    }
+
+    function updateThreshold(fridgeId) {
+        const value = document.getElementById(`thresh_${fridgeId}`).value;
+        fetch('/api/update_threshold', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fridge: fridgeId, value: value })
+        }).then(() => alert(`Threshold for ${fridgeId} updated to ${value}°C`));
+    }
+</script>
+{% endblock %}

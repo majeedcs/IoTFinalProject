@@ -1,0 +1,217 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div
+        class="card-header bg-body d-flex justify-content-between align-items-center"
+      >
+        <h4 class="mb-0 lang-en">Shopping Cart</h4>
+        <h4 class="mb-0 lang-fr d-none">Panier</h4>
+
+        <div class="d-flex align-items-center mb-0">
+          <!-- <form
+            action="/simulate_scan"
+            method="POST"
+            class="d-flex align-items-center mb-0 me-2"
+          >
+            <select name="epc" class="form-select form-select-sm me-2" required>
+              <option value="" disabled selected class="lang-en">
+                Select an item to scan...
+              </option>
+              <option value="" disabled selected class="lang-fr d-none">
+                Sélectionnez un article...
+              </option>
+              {% for item in inventory %}
+              <option value="{{ item.epc }}">
+                {{ item.name }} (${{ "%.2f"|format(item.price) }})
+              </option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-light text-nowrap">
+              <span class="lang-en">Simulate Scan</span>
+              <span class="lang-fr d-none">Simuler le scan</span>
+            </button>
+          </form> -->
+
+         <div class="d-flex align-items-center mb-0">
+          
+          <form action="/physical_scan" method="POST" class="mb-0 me-2">
+            <input 
+              type="text" 
+              name="epc" 
+              class="form-control form-control-sm border-dark" 
+              placeholder="Barcode: Click & Scan..." 
+              autofocus 
+              required
+            >
+          </form>
+
+          <!-- <form action="/bulk_rfid_scan" method="POST" class="mb-0">
+            <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold text-nowrap">
+              <span class="lang-en">Scan RFID Basket (2 Sec)</span>
+              <span class="lang-fr d-none">Scanner le panier RFID</span>
+            </button>
+          </form> -->
+
+        </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>
+                <span class="lang-en">Product</span>
+                <span class="lang-fr d-none">Produit</span>
+              </th>
+              <th>
+                <span class="lang-en">Qty</span>
+                <span class="lang-fr d-none">Qté</span>
+              </th>
+              <th>
+                <span class="lang-en">Price</span>
+                <span class="lang-fr d-none">Prix</span>
+              </th>
+              <th>
+                <span class="lang-en">Action</span>
+                <span class="lang-fr d-none">Action</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in cart %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td>{{ item.qty }}</td>
+              <td>${{ "%.2f"|format(item.price) }}</td>
+              <td>
+                  <a href="{{ url_for('remove_from_cart', epc=item.epc) }}" class="btn btn-sm btn-danger">
+                      Remove
+                  </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title lang-en">Summary</h5>
+        <h5 class="card-title lang-fr d-none">Résumé</h5>
+        <hr />
+        <div class="d-flex justify-content-between mb-3">
+          <strong class="lang-en">Total:</strong>
+          <strong class="lang-fr d-none">Total:</strong>
+          <strong>${{ "%.2f"|format(total) }}</strong>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-success w-100 btn-lg"
+          data-bs-toggle="modal"
+          data-bs-target="#paymentModal"
+        >
+          <span class="lang-en">Proceed to Payment</span>
+          <span class="lang-fr d-none">Procéder au paiement</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title lang-en">Secure Payment</h5>
+        <h5 class="modal-title lang-fr d-none">Paiement Sécurisé</h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form action="/pay" method="POST">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label lang-en">Card Number (16 digits)</label>
+            <label class="form-label lang-fr d-none"
+              >Numéro de carte (16 chiffres)</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              pattern="\d{16}"
+              title="Must be exactly 16 digits"
+              required
+              placeholder="1234567890123456"
+            />
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label lang-en">Expiry (MM/YY)</label>
+              <label class="form-label lang-fr d-none"
+                >Expiration (MM/AA)</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                pattern="(0[1-9]|1[0-2])\/\d{2}"
+                title="Format: MM/YY"
+                required
+                placeholder="12/28"
+              />
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">CVV</label>
+              <input
+                type="text"
+                class="form-control"
+                pattern="\d{3}"
+                title="Must be exactly 3 digits"
+                required
+                placeholder="123"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            <span class="lang-en">Cancel</span>
+            <span class="lang-fr d-none">Annuler</span>
+          </button>
+          <button type="submit" class="btn btn-success">
+            <span class="lang-en">Submit Payment</span>
+            <span class="lang-fr d-none">Soumettre le paiement</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  // Runs an invisible check every 3.5 seconds
+  setInterval(function() {
+      fetch('/api/auto_scan', {
+          method: 'POST' 
+      })
+      .then(response => response.json())
+      .then(data => {
+          // If the invisible scan found valid items, reload the page to show them!
+          if (data.items_added > 0) {
+              window.location.reload();
+          }
+      })
+      .catch(error => console.error('Scanner sleeping...', error));
+  }, 3500);
+</script>
+{% endblock %}
