@@ -33,3 +33,33 @@ The Smart Store Inventory System is a centralized, full-stack IoT web applicatio
 ```bash
 git clone [https://github.com/majeedcs/IoTFinalProject.git](https://github.com/majeedcs/IoTFinalProject.git)
 cd IoTFinalProject
+```
+
+### 2. Install Dependencies
+Ensure Python 3 is installed, then install the required Python libraries:
+```bash
+pip install Flask pyserial paho-mqtt requests
+(Note: Eclipse Mosquitto must be installed on your host machine to route MQTT traffic).
+```
+### 3. Hardware Initialization (CRITICAL)
+If running on a Linux environment (such as a Raspberry Pi), the kernel may incorrectly identify the USB RFID scanner as a generic HID keyboard. To mount the scanner correctly for serial communication, execute the following kernel override before starting the server:
+
+```
+sudo modprobe usbserial vendor=0x0483
+```
+### 4. Run the Application
+Navigate to the source folder and start the Flask server:
+
+```
+cd src
+python app.py
+```
+Access the web application by navigating to http://localhost:5000 or http://<Raspberry-Pi-IP>:5000 in your web browser.
+
+Repository Structure
+/src/ - Core application files, including app.py, HTML templates, and the store.db SQLite database.
+
+/docs/ - Contains the final Project Description Document, block diagrams, and presentation slides.
+
+Disclaimer
+This project was developed independently for educational purposes as a final project for the Internet of Things (420-521-VA) course at Vanier College.
